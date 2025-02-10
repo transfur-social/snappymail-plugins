@@ -58,7 +58,7 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 			return true;
 		}
 
-		$oAccount = $oActions->LoginProcess($sEmail, $sPassword);
+		$oAccount = $oActions->LoginProcess($sEmail,  new \SnappyMail\SensitiveString($sPassword));
 		if ($oAccount instanceof \RainLoop\Model\MainAccount) {
 			$oActions->SetAuthToken($oAccount);
 			$oActions->Location('./');
