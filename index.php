@@ -16,8 +16,8 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 		NAME     = 'Login OAuth2Service',
 		AUTHOR   = 'craftxbox',
 		URL      = 'https://github.com/transfur-social/snappymail-plugins',
-		VERSION  = '1.0',
-		RELEASE  = '2023-06-21',
+		VERSION  = '1.1',
+		RELEASE  = '2026-09-21',
 		REQUIRED = '2.14.0',
 		CATEGORY = 'Login',
 		LICENSE  = 'MIT',
@@ -31,6 +31,8 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 
 	public function PostAuthJwtLogin(): bool
 	{
+		echo file_get_contents(__DIR__ . "/interstitial.html");
+
 		$oActions = \RainLoop\Api::Actions();
 		$oActions->Http()->ServerNoCache();
 
@@ -43,7 +45,7 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 		try {
 			$payload = JWT::decode($jwt, new Key($this->Config()->Get('plugin', 'jwt_public_key', ''), "RS256"));
 		} catch (Throwable $e) {
-			echo "ERROR: Invalid JWT. Report this to your webmaster.";
+			echo "<h2 id=error>ERROR: Invalid JWT. Report this to your webmaster.</h2>";
 			http_response_code(400);
 			return true;
 		}
@@ -53,19 +55,30 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 		$sPassword = file_get_contents($this->Config()->Get('plugin', 'credential_path', '') . $sub);
 
 		if (strlen($sPassword) < 8) {
-			echo "ERROR: Stored credentials are insufficient. Report this to your webmaster.";
+			echo "<h2 id=error>ERROR: Stored credentials are insufficient. Report this to your webmaster.</h2>";
 			http_response_code(500);
 			return true;
 		}
 
-		$oAccount = $oActions->LoginProcess($sEmail,  new \SnappyMail\SensitiveString($sPassword));
+		try {
+			$oAccount = $oActions->LoginProcess($sEmail,  new \SnappyMail\SensitiveString($sPassword));
+		} catch (Throwable $e)
+			echo "<h2 id=error>ERROR: Uncaught exception during login. Report this to your webmaster.</h2>";
+			echo $e->getMessage();
+			if ($e->getPrevious()) {
+				echo " (" . $e->getPrevious()->getMessage() . ")";
+			}
+			error_log((string)$e);
+			http_response_code(500);
+			return true;what 
+		}
 		if ($oAccount instanceof \RainLoop\Model\MainAccount) {
 			$oActions->SetAuthToken($oAccount);
 			$oActions->Location('./');
 			return true;
 		} else {
 			$oAccount = null;
-			echo "ERROR: Invalid credentials. Report this to your webmaster.";
+			echo "<h2 id=error>ERROR: Invalid credentials. Report this to your webmaster.</h2>";
 			http_response_code(400);
 			return true;
 		}
