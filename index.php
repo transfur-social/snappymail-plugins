@@ -31,7 +31,10 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 
 	public function PostAuthJwtLogin(): bool
 	{
-		echo file_get_contents(__DIR__ . "/interstitial.html");
+		$interstitial = file_get_contents(__DIR__ . "/interstitial.html");
+		$interstitial = str_replace('$destination',"/",$interstitial);
+		$interstitial = str_replace('$destFriendly',"Mastodon",$interstitial);
+		echo $interstitial;
 
 		$oActions = \RainLoop\Api::Actions();
 		$oActions->Http()->ServerNoCache();
@@ -70,7 +73,7 @@ class LoginOauth2ServicePlugin extends \RainLoop\Plugins\AbstractPlugin
 			}
 			error_log((string)$e);
 			http_response_code(500);
-			return true;what 
+			return true;
 		}
 		if ($oAccount instanceof \RainLoop\Model\MainAccount) {
 			$oActions->SetAuthToken($oAccount);

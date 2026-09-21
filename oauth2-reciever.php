@@ -39,21 +39,39 @@ $code = $_GET['code'] ?? null;
 $error = $_GET['error'] ?? null;
 $error_description = $_GET['error_description'] ?? null;
 
-if ($error != null) {
-    echo "Error: " . $error . "<br>";
-    echo "Error Description: " . $error_description . "<br>";
-    echo "Please make sure to AUTHORIZE the app to access your account.<br/>";
-    echo "<a href='" . $authorize_url . "'>Back to login</a>";
-    http_response_code(400);
+echo file_get_contents(__DIR__ . "/interstitial.html");
+
+function exit_error($reason, $desc, $code, $destination = null, $destFriendly = "Login") {
+    if($destination === null) {
+        global $authorize_url;
+        $destination = $authorize_url;
+    }
+    $buffer = ob_get_clean();
+    $buffer = str_replace('$destination',$destination,$buffer);
+    $buffer = str_replace('$destFriendly',$destFriendly,$buffer);
+    echo $buffer;
+    echo "<h2 id=error>Error: " . $reason . "</h2>";
+    echo $desc . "<br/>";
+    http_response_code($code);
+    ob_end_flush();
     exit();
 }
 
+if ($error != null) {
+    exit_error(
+        $error,
+        "Error Description: " . $error_description . "<br/>" .
+        "Please make sure to AUTHORIZE the app to access your account.<br/>",
+        400
+    );
+}
+
 if ($code == null) {
-    echo "Error: Invalid Response<br/>";
-    echo "Please make sure to AUTHORIZE the app to access your account.<br/>";
-    echo "<a href='" . $authorize_url . "'>Back to login</a>";
-    http_response_code(400);
-    exit();
+    exit_error(
+        "Invalid Response",
+        "Please make sure to AUTHORIZE the app to access your account.<br/>",
+        400
+    );
 }
 
 $curl = curl_init();
@@ -69,12 +87,12 @@ $token_response = json_decode($token_response, true);
 
 //check if token response is valid
 if ($token_response['error'] ?? null !== null) {
-    echo "Error: " . $token_response['error'] . "<br>";
-    echo "Error Description: " . $token_response['error_description'] . "<br>";
-    echo "Please make sure to AUTHORIZE the app to access your account.<br/>";
-    echo "<a href='" . $authorize_url . "'>Back to login</a>";
-    http_response_code(400);
-    exit();
+    exit_error(
+        $token_response['error'],
+		$token_response['error_description'] . "<br/>" .
+        "Please make sure to AUTHORIZE the app to access your account.<br/>",
+        400
+    );
 }
 
 $curl = curl_init();
@@ -88,11 +106,11 @@ $verify_response = json_decode($verify_response, true);
 
 //check if verify response is valid
 if ($verify_response['error'] ?? null !== null) {
-    echo "Error: " . $verify_response['error'] . "<br>";
-    echo "Please make sure to AUTHORIZE the app to access your account.<br/>";
-    echo "<a href='" . $authorize_url . "'>Back to login</a>";
-    http_response_code(400);
-    exit();
+    exit_error(
+        $verify_response['error'],
+        "Please make sure to AUTHORIZE the app to access your account.<br/>",
+        400
+    );
 }
 
 // check if user has the email role
@@ -105,20 +123,25 @@ foreach ($roles as $role) {
     }
 }
 if (!$has_email_role) {
-    echo "Error: Your account is not authorized to use the Email service.<br/>";
-    echo "You must be a Patron or be Verified to gain access.<br/>";
-    echo "<a href='" . $mastodon_root . "'>Back to Mastodon</a>";
-    http_response_code(403);
-    exit();
+    exit_error(
+        "Your account is not authorized to use the Email service.",
+        "You must be a Patron or be Verified to gain access.<br/>",
+        403,
+		$mastodon_root,
+		"Mastodon"
+    );
 }
 
 //check if user has credentials or not
 if (!file_exists($data_path . $verify_response['id']) && $autoprovision == false) {
-    echo "Error: Your account does not have an email address associated with it.<br/>";
-    echo "You seem to be authorized for email access. Please contact the webmaster for support.<br/>";
-    echo "<a href='" . $mastodon_root . "'>Back to Mastodon</a>";
-    http_response_code(500);
-    exit();
+    exit_error(
+        "Your account does not have an email address associated with it.",
+        "You seem to be authorized for email access.<br/>" .
+        "Please contact the webmaster for support.<br/>",
+        500,
+		$mastodon_root,
+		"Mastodon"
+    );
 } else if (!file_exists($data_path . $verify_response['id']) && $autoprovision == true) {
     // generate random password
     $password = bin2hex(random_bytes(64));
@@ -145,11 +168,13 @@ if (!file_exists($data_path . $verify_response['id']) && $autoprovision == false
     curl_close($curl);
     $autoprovision_response = json_decode($autoprovision_response, true);
     if ($autoprovision_response['error'] !== null) {
-        echo "Error: " . $autoprovision_response['error'] . "<br>";
-        echo "Please contact the webmaster for support.<br/>";
-        echo "<a href='" . $mastodon_root . "'>Back to Mastodon</a>";
-        http_response_code(500);
-        exit();
+        exit_error(
+            $autoprovision_response['error'],
+            "Please contact the webmaster for support.<br/>",
+            500,
+            $mastodon_root,
+            "Mastodon"
+        );
     }
     $file = fopen($data_path . $verify_response['id'], "w");
     fwrite($file, $password);
