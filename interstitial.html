@@ -1,0 +1,73 @@
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      font-family: monospace;
+    }
+
+    body {
+      background: #4f4f4f;
+      color: #f4f4f4;
+      display: flex;
+      flex-flow: column nowrap;
+    }
+
+    button {
+      font-family: monospace;
+      font-size: 1.4rem;
+      background: #070707;
+      color: #f4f4f4;
+      border: 0.2rem solid #f4f4f4;
+      border-radius: 0.3rem;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+    }
+
+    .returns {
+      display: none;
+    }
+
+    body:has(#error) {
+      & .spinner {
+        display: none;
+      }
+
+      & .returns {
+        display: block;
+        order: 0;
+      }
+
+    }
+
+    .spinner {
+      display: block;
+      width: 8rem;
+      height: 8rem;
+      position: fixed;
+      top: calc(50vh - 4rem);
+      left: calc(50vw - 4rem);
+      border-radius: 50%;
+      border: #070707 0.50rem solid;
+      border-top: #c4c4c4 0.50rem solid;
+      animation: spin 1s cubic-bezier(.43, .06, .48, .86) infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="returns">
+    <form action="/" method="get">
+      <button type="submit">Back to Mastodon</button>
+    </form>
+  </div>
+  <div class="spinner" role="status" aria-live="polite"></div>
